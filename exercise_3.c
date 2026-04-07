@@ -44,4 +44,17 @@ void lbm_comm_ghost_exchange_ex3(lbm_comm_t * comm, lbm_mesh_t * mesh)
 	//example to access cell
 	//double * cell = lbm_mesh_get_cell(mesh, local_x, local_y);
 	//double * cell = lbm_mesh_get_cell(mesh, comm->width - 1, 0);
+
+	int request_count = 0;
+	if (comm->rank_x > 0)
+	{
+		MPI_Isend(lbm_mesh_get_cell(mesh, 1, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x - 1, 0, MPI_COMM_WORLD, &comm->requests[request_count++]);
+		MPI_Irecv(lbm_mesh_get_cell(mesh, 0, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x - 1, 0, MPI_COMM_WORLD, &comm->requests[request_count++]);
+	}
+	if (comm->rank_x < comm->nb_x - 1)
+	{
+		MPI_Isend(lbm_mesh_get_cell(mesh, comm->width - 2, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x + 1, 0, MPI_COMM_WORLD, &comm->requests[request_count++]);
+		MPI_Irecv(lbm_mesh_get_cell(mesh, comm->width - 1, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x + 1, 0, MPI_COMM_WORLD, &comm->requests[request_count++]);
+	}
+	MPI_Waitall(request_count, comm->requests, MPI_STATUSES_IGNORE);
 }
