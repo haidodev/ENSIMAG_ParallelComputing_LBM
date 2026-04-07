@@ -1,0 +1,10 @@
+*.gif
+*.raw
+*.md5
+check_comm
+display
+lbm
+objs
+display.dSYM
+check_comm.dSYM
+.DS_Store
