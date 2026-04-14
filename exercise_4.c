@@ -160,35 +160,15 @@ void lbm_comm_ghost_exchange_ex4(lbm_comm_t * comm, lbm_mesh_t * mesh)
 	{
 		int start = comm -> rank_y > 0 ? 1 : 0, end = comm -> rank_y < comm -> nb_y - 1 ? comm -> height - 1 : comm -> height;
 		int elements_to_send = (end - start) * DIRECTIONS;
-		MPI_Sendrecv(
-			lbm_mesh_get_cell(mesh, 1, start), elements_to_send, MPI_DOUBLE, comm -> rank_y * comm->nb_x + comm->rank_x - 1, TAG_LEFT,
-			lbm_mesh_get_cell(mesh, 0, start), elements_to_send, MPI_DOUBLE, comm -> rank_y * comm->nb_x + comm->rank_x - 1, TAG_RIGHT,
-			MPI_COMM_WORLD, MPI_STATUS_IGNORE
-		);
-		// MPI_Send(lbm_mesh_get_cell(mesh, 1, start), elements_to_send, MPI_DOUBLE, comm -> rank_y * comm->nb_x + comm->rank_x - 1, TAG_LEFT, MPI_COMM_WORLD);
-		// MPI_Recv(lbm_mesh_get_cell(mesh, 0, start), elements_to_send, MPI_DOUBLE, comm -> rank_y * comm->nb_x + comm->rank_x - 1, TAG_RIGHT, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		// for (int i = start; i < end; i++)
-		// {
-		// 	MPI_Send(lbm_mesh_get_cell(mesh, 1, i), DIRECTIONS, MPI_DOUBLE, comm -> rank_y * comm->nb_x + comm->rank_x - 1, 0, MPI_COMM_WORLD);
-		// 	MPI_Recv(lbm_mesh_get_cell(mesh, 0, i), DIRECTIONS, MPI_DOUBLE, comm -> rank_y * comm->nb_x + comm->rank_x - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		// }
+		MPI_Send(lbm_mesh_get_cell(mesh, 1, start), elements_to_send, MPI_DOUBLE, comm -> rank_y * comm->nb_x + comm->rank_x - 1, TAG_LEFT, MPI_COMM_WORLD);
+		MPI_Recv(lbm_mesh_get_cell(mesh, 0, start), elements_to_send, MPI_DOUBLE, comm -> rank_y * comm->nb_x + comm->rank_x - 1, TAG_RIGHT, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 	}
 	if (comm->rank_x < comm->nb_x - 1)
 	{
 		int start = comm -> rank_y > 0 ? 1 : 0, end = comm -> rank_y < comm -> nb_y - 1 ? comm -> height - 1 : comm -> height;
 		int elements_to_send = (end - start) * DIRECTIONS;
-		MPI_Sendrecv(
-			lbm_mesh_get_cell(mesh, comm->width - 2, start), elements_to_send, MPI_DOUBLE, comm -> rank_y * comm->nb_x + comm->rank_x + 1, TAG_RIGHT,
-			lbm_mesh_get_cell(mesh, comm->width - 1, start), elements_to_send, MPI_DOUBLE, comm -> rank_y * comm->nb_x + comm->rank_x + 1, TAG_LEFT,
-			MPI_COMM_WORLD, MPI_STATUS_IGNORE
-		);
-		// MPI_Send(lbm_mesh_get_cell(mesh, comm->width - 2, start), elements_to_send, MPI_DOUBLE, comm -> rank_y * comm->nb_x + comm->rank_x + 1, TAG_RIGHT, MPI_COMM_WORLD);
-		// MPI_Recv(lbm_mesh_get_cell(mesh, comm->width - 1, start), elements_to_send, MPI_DOUBLE, comm -> rank_y * comm->nb_x + comm->rank_x + 1, TAG_LEFT, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		// for (int i = start; i < end; i++)
-		// {
-		// 	MPI_Send(lbm_mesh_get_cell(mesh, comm->width - 2, i), DIRECTIONS, MPI_DOUBLE, comm -> rank_y * comm->nb_x + comm->rank_x + 1, 0, MPI_COMM_WORLD);
-		// 	MPI_Recv(lbm_mesh_get_cell(mesh, comm->width - 1, i), DIRECTIONS, MPI_DOUBLE, comm -> rank_y * comm->nb_x + comm->rank_x + 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
-		// }
+		MPI_Recv(lbm_mesh_get_cell(mesh, comm->width - 1, start), elements_to_send, MPI_DOUBLE, comm -> rank_y * comm->nb_x + comm->rank_x + 1, TAG_LEFT, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Send(lbm_mesh_get_cell(mesh, comm->width - 2, start), elements_to_send, MPI_DOUBLE, comm -> rank_y * comm->nb_x + comm->rank_x + 1, TAG_RIGHT, MPI_COMM_WORLD);
 	}
 
 	if (comm->rank_y > 0)
@@ -198,12 +178,8 @@ void lbm_comm_ghost_exchange_ex4(lbm_comm_t * comm, lbm_mesh_t * mesh)
 			memcpy(&(comm -> buffer_send_up[i * DIRECTIONS]), lbm_mesh_get_cell(mesh, i, 1), sizeof(double) * DIRECTIONS);
 
 		int up = (comm->rank_y - 1) * comm->nb_x + comm->rank_x;
-
-		MPI_Sendrecv(comm->buffer_send_up, DIRECTIONS * comm->width, MPI_DOUBLE,
-					up, TAG_UP,
-					comm->buffer_recv_up, DIRECTIONS * comm->width, MPI_DOUBLE,
-					up, TAG_DOWN,
-					MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Send(comm->buffer_send_up, DIRECTIONS * comm->width, MPI_DOUBLE, up, TAG_UP, MPI_COMM_WORLD);
+		MPI_Recv(comm->buffer_recv_up, DIRECTIONS * comm->width, MPI_DOUBLE, up, TAG_DOWN, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		for (int i = start; i < end; i++)
 			memcpy(lbm_mesh_get_cell(mesh, i, 0), &(comm -> buffer_recv_up[i * DIRECTIONS]), sizeof(double) * DIRECTIONS);
 	}
@@ -215,15 +191,10 @@ void lbm_comm_ghost_exchange_ex4(lbm_comm_t * comm, lbm_mesh_t * mesh)
 			memcpy(&(comm -> buffer_send_down[i * DIRECTIONS]), lbm_mesh_get_cell(mesh, i, comm->height - 2), sizeof(double) * DIRECTIONS);
 
 		int down = (comm->rank_y + 1) * comm->nb_x + comm->rank_x;
-
-		MPI_Sendrecv(comm->buffer_send_down, DIRECTIONS * comm->width, MPI_DOUBLE,
-					down, TAG_DOWN,
-					comm->buffer_recv_down, DIRECTIONS * comm->width, MPI_DOUBLE,
-					down, TAG_UP,
-					MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Recv(comm->buffer_recv_down, DIRECTIONS * comm->width, MPI_DOUBLE, down, TAG_UP, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Send(comm->buffer_send_down, DIRECTIONS * comm->width, MPI_DOUBLE, down, TAG_DOWN, MPI_COMM_WORLD);
 		for (int i = start; i < end; i++)
 			memcpy(lbm_mesh_get_cell(mesh, i, comm->height - 1), &(comm -> buffer_recv_down[i * DIRECTIONS]), sizeof(double) * DIRECTIONS);
-
 	}
 
 
@@ -240,13 +211,13 @@ void lbm_comm_ghost_exchange_ex4(lbm_comm_t * comm, lbm_mesh_t * mesh)
 	}
 	if (comm->rank_x > 0 && comm->rank_y < comm->nb_y - 1)
 	{
-		MPI_Send(lbm_mesh_get_cell(mesh, 1, comm->height - 2), DIRECTIONS, MPI_DOUBLE, (comm->rank_y + 1) * comm->nb_x + comm->rank_x - 1, TAG_DOWN_LEFT, MPI_COMM_WORLD);
 		MPI_Recv(lbm_mesh_get_cell(mesh, 0, comm->height - 1), DIRECTIONS, MPI_DOUBLE, (comm->rank_y + 1) * comm->nb_x + comm->rank_x - 1, TAG_UP_RIGHT, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Send(lbm_mesh_get_cell(mesh, 1, comm->height - 2), DIRECTIONS, MPI_DOUBLE, (comm->rank_y + 1) * comm->nb_x + comm->rank_x - 1, TAG_DOWN_LEFT, MPI_COMM_WORLD);
 	}
 	if (comm->rank_x < comm->nb_x - 1 && comm->rank_y < comm->nb_y - 1)
 	{
-		MPI_Send(lbm_mesh_get_cell(mesh, comm->width - 2, comm->height - 2), DIRECTIONS, MPI_DOUBLE, (comm->rank_y + 1) * comm->nb_x + comm->rank_x + 1, TAG_DOWN_RIGHT, MPI_COMM_WORLD);
 		MPI_Recv(lbm_mesh_get_cell(mesh, comm->width - 1, comm->height - 1), DIRECTIONS, MPI_DOUBLE, (comm->rank_y + 1) * comm->nb_x + comm->rank_x + 1, TAG_UP_LEFT, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Send(lbm_mesh_get_cell(mesh, comm->width - 2, comm->height - 2), DIRECTIONS, MPI_DOUBLE, (comm->rank_y + 1) * comm->nb_x + comm->rank_x + 1, TAG_DOWN_RIGHT, MPI_COMM_WORLD);
 	}
 
 }

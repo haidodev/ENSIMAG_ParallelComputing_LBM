@@ -36,6 +36,6 @@ cat << EOF | gnuplot
 EOF
 }
 
-#bench
+bench
 plot
 rm -f /tmp/output.dat

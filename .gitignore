@@ -8,3 +8,5 @@ objs
 display.dSYM
 check_comm.dSYM
 .DS_Store
+*.log
+output_*

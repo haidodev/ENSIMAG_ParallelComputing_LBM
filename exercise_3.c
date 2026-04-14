@@ -22,6 +22,11 @@
 #include "src/lbm_struct.h"
 #include "src/exercises.h"
 
+enum {
+	TAG_LEFT,
+	TAG_RIGHT,
+};
+
 /****************************************************/
 void lbm_comm_init_ex3(lbm_comm_t * comm, int total_width, int total_height)
 {
@@ -48,13 +53,13 @@ void lbm_comm_ghost_exchange_ex3(lbm_comm_t * comm, lbm_mesh_t * mesh)
 	int request_count = 0;
 	if (comm->rank_x > 0)
 	{
-		MPI_Isend(lbm_mesh_get_cell(mesh, 1, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x - 1, 0, MPI_COMM_WORLD, &comm->requests[request_count++]);
-		MPI_Irecv(lbm_mesh_get_cell(mesh, 0, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x - 1, 0, MPI_COMM_WORLD, &comm->requests[request_count++]);
+		MPI_Isend(lbm_mesh_get_cell(mesh, 1, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x - 1, TAG_LEFT, MPI_COMM_WORLD, &comm->requests[request_count++]);
+		MPI_Irecv(lbm_mesh_get_cell(mesh, 0, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x - 1, TAG_RIGHT, MPI_COMM_WORLD, &comm->requests[request_count++]);
 	}
 	if (comm->rank_x < comm->nb_x - 1)
 	{
-		MPI_Isend(lbm_mesh_get_cell(mesh, comm->width - 2, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x + 1, 0, MPI_COMM_WORLD, &comm->requests[request_count++]);
-		MPI_Irecv(lbm_mesh_get_cell(mesh, comm->width - 1, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x + 1, 0, MPI_COMM_WORLD, &comm->requests[request_count++]);
+		MPI_Irecv(lbm_mesh_get_cell(mesh, comm->width - 1, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x + 1, TAG_LEFT, MPI_COMM_WORLD, &comm->requests[request_count++]);
+		MPI_Isend(lbm_mesh_get_cell(mesh, comm->width - 2, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x + 1, TAG_RIGHT, MPI_COMM_WORLD, &comm->requests[request_count++]);
 	}
 	MPI_Waitall(request_count, comm->requests, MPI_STATUSES_IGNORE);
 }

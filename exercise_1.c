@@ -22,6 +22,11 @@
 #include "src/lbm_struct.h"
 #include "src/exercises.h"
 
+enum {
+	TAG_LEFT,
+	TAG_RIGHT,
+};
+
 /****************************************************/
 void lbm_comm_init_ex1(lbm_comm_t * comm, int total_width, int total_height)
 {
@@ -72,36 +77,36 @@ void lbm_comm_ghost_exchange_ex1(lbm_comm_t * comm, lbm_mesh_t * mesh)
 
 	if (comm->rank_x > 0)
 	{
-		MPI_Sendrecv(
-			lbm_mesh_get_cell(mesh, 1, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x - 1, 0,
-			lbm_mesh_get_cell(mesh, 0, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x - 1, 0,
-			MPI_COMM_WORLD, MPI_STATUS_IGNORE
-		);
+		// MPI_Sendrecv(
+		// 	lbm_mesh_get_cell(mesh, 1, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x - 1, 0,
+		// 	lbm_mesh_get_cell(mesh, 0, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x - 1, 0,
+		// 	MPI_COMM_WORLD, MPI_STATUS_IGNORE
+		// );
 
 		// This implementation is may block if the height is too large (detail in the report), you can use the following implementation to avoid this issue (but less efficient) :
-		// MPI_Send(lbm_mesh_get_cell(mesh, 1, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x - 1, 0, MPI_COMM_WORLD);
-		// MPI_Recv(lbm_mesh_get_cell(mesh, 0, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Send(lbm_mesh_get_cell(mesh, 1, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x - 1, TAG_LEFT, MPI_COMM_WORLD);
+		MPI_Recv(lbm_mesh_get_cell(mesh, 0, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x - 1, TAG_RIGHT, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 
 		// This implementation is suboptimal since we can send all the data at once, reduce the latency
 		// for (int i = 0; i < comm->height; i++)
 		// {
-		// 	MPI_Send(lbm_mesh_get_cell(mesh, 1, i), DIRECTIONS, MPI_DOUBLE, comm->rank_x - 1, 0, MPI_COMM_WORLD);
-		// 	MPI_Recv(lbm_mesh_get_cell(mesh, 0, i), DIRECTIONS, MPI_DOUBLE, comm->rank_x - 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		// 	MPI_Send(lbm_mesh_get_cell(mesh, 1, i), DIRECTIONS, MPI_DOUBLE, comm->rank_x - 1, TAG_LEFT, MPI_COMM_WORLD);
+		// 	MPI_Recv(lbm_mesh_get_cell(mesh, 0, i), DIRECTIONS, MPI_DOUBLE, comm->rank_x - 1, TAG_RIGHT, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		// }
 	}
 	if (comm->rank_x < comm->nb_x - 1)
 	{
-		MPI_Sendrecv(
-			lbm_mesh_get_cell(mesh, comm->width - 2, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x + 1, 0,
-			lbm_mesh_get_cell(mesh, comm->width - 1, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x + 1, 0,
-			MPI_COMM_WORLD, MPI_STATUS_IGNORE
-		);
-		// MPI_Send(lbm_mesh_get_cell(mesh, comm->width - 2, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x + 1, 0, MPI_COMM_WORLD);
-		// MPI_Recv(lbm_mesh_get_cell(mesh, comm->width - 1, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x + 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		// MPI_Sendrecv(
+		// 	lbm_mesh_get_cell(mesh, comm->width - 2, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x + 1, 0,
+		// 	lbm_mesh_get_cell(mesh, comm->width - 1, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x + 1, 0,
+		// 	MPI_COMM_WORLD, MPI_STATUS_IGNORE
+		// );
+		MPI_Recv(lbm_mesh_get_cell(mesh, comm->width - 1, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x + 1, TAG_LEFT, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		MPI_Send(lbm_mesh_get_cell(mesh, comm->width - 2, 0), DIRECTIONS * comm->height, MPI_DOUBLE, comm->rank_x + 1, TAG_RIGHT, MPI_COMM_WORLD);
 		// for (int i = 0; i < comm->height; i++)
 		// {
-		// 	MPI_Send(lbm_mesh_get_cell(mesh, comm->width - 2, i), DIRECTIONS, MPI_DOUBLE, comm->rank_x + 1, 0, MPI_COMM_WORLD);
-		// 	MPI_Recv(lbm_mesh_get_cell(mesh, comm->width - 1, i), DIRECTIONS, MPI_DOUBLE, comm->rank_x + 1, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+		// 	MPI_Send(lbm_mesh_get_cell(mesh, comm->width - 2, i), DIRECTIONS, MPI_DOUBLE, comm->rank_x + 1, TAG_RIGHT, MPI_COMM_WORLD);
+		// 	MPI_Recv(lbm_mesh_get_cell(mesh, comm->width - 1, i), DIRECTIONS, MPI_DOUBLE, comm->rank_x + 1, TAG_LEFT, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
 		// }
 	}
 
