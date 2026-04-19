@@ -78,31 +78,45 @@ void lbm_comm_init_ex4(lbm_comm_t * comm, int total_width, int total_height)
 	//
 	
 	// assume square domain and square splitting for simplicity
-	int nb_tasks_per_dim = (int) sqrt(comm_size);
-	if (nb_tasks_per_dim * nb_tasks_per_dim != comm_size)
-		fatal("Invalid number of processes, should be a perfect square !");
-	if (total_width % nb_tasks_per_dim != 0 || total_height % nb_tasks_per_dim != 0)
-		fatal("Invalid total width/height, should be a multiple of the number of tasks per dimension !");
+	if (total_width * total_height % comm_size != 0)
+		fatal("Invalid total width/height, should be a multiple of the number of processes !");
+	int nb_tasks_per_dim_x = (int) sqrt(comm_size), nb_tasks_per_dim_y;
+	while (nb_tasks_per_dim_x > 0)
+	{
+		if (comm_size % nb_tasks_per_dim_x == 0)
+		{
+			nb_tasks_per_dim_y = comm_size / nb_tasks_per_dim_x;
+			if (total_width % nb_tasks_per_dim_x == 0 && total_height % nb_tasks_per_dim_y == 0)
+				break;
+		}
+		nb_tasks_per_dim_x--;
+	}
+	if (nb_tasks_per_dim_x == 0)
+		fatal("Invalid number of processes, should be a product of 2 integers that are divisors of total width and total height !");
+	// if (nb_tasks_per_dim * nb_tasks_per_dim != comm_size)
+	// 	fatal("Invalid number of processes, should be a perfect square !");
+	// if (total_width % nb_tasks_per_dim != 0 || total_height % nb_tasks_per_dim != 0)
+	// 	fatal("Invalid total width/height, should be a multiple of the number of tasks per dimension !");
 
 	// TODO: calculate the number of tasks along X axis and Y axis.
-	comm->nb_x = nb_tasks_per_dim;
-	comm->nb_y = nb_tasks_per_dim;
+	comm->nb_x = nb_tasks_per_dim_x;
+	comm->nb_y = nb_tasks_per_dim_y;
 
 	// TODO: calculate the current task position in the splitting
-	comm->rank_x = rank % nb_tasks_per_dim;
-	comm->rank_y = rank / nb_tasks_per_dim;
+	comm->rank_x = rank % nb_tasks_per_dim_x;
+	comm->rank_y = rank / nb_tasks_per_dim_x;
 
 	// TODO : calculate the local sub-domain size (do not forget the 
 	//        ghost cells). Use total_width & total_height as starting 
 	//        point.
-	comm->width = (total_width / nb_tasks_per_dim) + 2;
-	comm->height = (total_height / nb_tasks_per_dim) + 2;
+	comm->width = (total_width / nb_tasks_per_dim_x) + 2;
+	comm->height = (total_height / nb_tasks_per_dim_y) + 2;
 
 	// TODO : calculate the absolute position  (in cell number) in the global mesh.
 	//        without accounting the ghost cells
 	//        (used to setup the obstable & initial conditions).
-	comm->x = comm->rank_x * (total_width / nb_tasks_per_dim);
-	comm->y = comm->rank_y * (total_height / nb_tasks_per_dim);
+	comm->x = comm->rank_x * (total_width / nb_tasks_per_dim_x);
+	comm->y = comm->rank_y * (total_height / nb_tasks_per_dim_y);
 
 	//OPTIONAL : if you want to avoid allocating temporary copy buffer
 	//           for every step :
